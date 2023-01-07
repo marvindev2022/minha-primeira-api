@@ -17,7 +17,10 @@ const validateAdmPassword = (req, res, next) => {
 };
 const validateUserPassword = (req, res, next) => {
   const { numero_conta_origem, senha } = req.body;
-
+  if (!numero_conta || !senha)
+    return res.status(401).json({
+      mensagem: "Preencha todos os campos!",
+    });
   contas.find((account) => {
     if (account.numero === numero_conta_origem) {
       if (account.usuario.senha != senha) {

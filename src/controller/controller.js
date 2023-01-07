@@ -6,11 +6,11 @@ const listBankAccounts = (req, res) => {
 };
 
 const createBankAccount = (req, res) => {
-  const { nome, cpf, data_nascimento, telefone, email, senha, saldo } =
+  const { nome, cpf, data_nascimento, telefone, email, senha } =
     req.body;
   const accountExists = functions.validateUser(database, cpf, email);
 
-  if ([nome, cpf, data_nascimento, telefone, email, senha].includes(undefined))
+  if (!nome || !cpf || !data_nascimento || !telefone || !email || !senha)
     return res.status(400).json({
       mensagem: "Todos os campos devem ser informados!",
     });
@@ -60,7 +60,6 @@ const changeAccountData = (req, res) => {
 const deleteAccount = (req, res) => {
   const { numeroConta } = req.params;
   const selectedAccount = functions.validateAccount(database, numeroConta);
-  let newDatabase = [];
 
   if (selectedAccount.saldo > 0) {
     return res.status(403).json({
@@ -70,14 +69,9 @@ const deleteAccount = (req, res) => {
     return res.status(404).json({
       mensagem: "Conta bancária não encontada!",
     });
-  } else {
-    database.contas.find((conta) => {
-      if (conta.numero !== selectedAccount.numero) {
-        newDatabase.push(conta);
-      }
-    });
   }
-  database.contas = newDatabase;
+
+  database.contas = database.contas.filter((conta) => conta.numero !== selectedAccount.numero)
   functions.storeJsonData(database);
   res.status(204).json();
 };
@@ -89,6 +83,11 @@ const deposit = (req, res) => {
   if (!numero_conta || !valor)
     return res.status(403).json({
       mensagem: "O número da conta e o valor são obrigatórios!",
+    });
+
+  if (valor < 0)
+    return res.status(403).json({
+      mensagem: "Valor não pode ser menor que zero!",
     });
 
   if (selectedAccount.usuario !== undefined) {
@@ -111,7 +110,10 @@ const deposit = (req, res) => {
 const withdraw = (req, res) => {
   const { numero_conta, valor, senha } = req.body;
   const selectedAccount = functions.validateAccount(database, numero_conta);
-
+  if (!numero_conta || !valor || !senha)
+    return res.status(403).json({
+      mensagem: "Preencha todos os campos!",
+    });
   if (!selectedAccount.numero)
     res.status(404).json({
       mensagem: "Conta bancária não encontada!",
@@ -138,7 +140,7 @@ const withdraw = (req, res) => {
       mensagem: "Valor não pode ser menor que zero!",
     });
   }
-
+  functions.storeJsonData(database)
   res.status(204).json();
 };
 
@@ -148,7 +150,7 @@ const transfer = (req, res) => {
   let origin = [];
   let destiny = [];
 
-  if ([numero_conta_origem, numero_conta_destino, senha, valor].includes(undefined))
+  if (!numero_conta_origem || !numero_conta_destino || !senha || !valor)
     return res.status(400).json({
       mensagem: "Preencha todos os campos!",
     });
@@ -221,35 +223,13 @@ const extract = (req, res) => {
       mensagem: "Senha inválida!",
     });
 
-  let detailedStatement = {
-    saques: [],
-    transferencias_enviadas: [],
-    transferencias_recebidas: [],
-    depositos: [],
-  };
+  return res.status(201).json({
+    saques: database.saques.filter((withdraw) => withdraw.numero_conta === numero_conta),
+    depositos: database.depositos.filter((deposit) => deposit.numero_conta === numero_conta),
+    transferencias_enviadas: database.transferencias.filter((transfer) => transfer.numero_conta_origem === numero_conta),
+    transferencias_recebidas: database.transferencias.filter((transfer) => transfer.numero_conta_destino === numero_conta),
 
-  database.saques.find((withdraw) => {
-    if (withdraw.numero_conta === numero_conta) {
-      detailedStatement.saques.push(withdraw);
-    }
   });
-
-  database.depositos.find((deposit) => {
-    if (deposit.numero_conta === numero_conta) {
-      detailedStatement.depositos.push(deposit);
-    }
-  });
-
-  database.transferencias.find((transfer) => {
-    if (transfer.numero_conta_origem === numero_conta) {
-      detailedStatement.transferencias_enviadas.push(transfer);
-    }
-    if (transfer.numero_conta_destino === numero_conta) {
-      detailedStatement.transferencias_recebidas.push(transfer);
-    }
-  });
-
-  return res.status(201).json(detailedStatement);
 };
 
 module.exports = {

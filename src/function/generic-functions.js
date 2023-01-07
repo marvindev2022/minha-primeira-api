@@ -8,6 +8,17 @@ const validateUser = (database, cpf, email, account_Number) => {
 
   return accountExists;
 };
+const validateAccount = (database, number,) => {
+  let selectedAccount = [];
+
+  database.contas.find((account) => {
+    if (account.numero === number) {
+      selectedAccount = account;
+    }
+  });
+
+  return selectedAccount;
+};
 const searchAccountAndChange = (database, name, cpf, data_nascimento, telefone, email, senha, numeroConta) => {
   let changedAccount = false;
 
@@ -27,17 +38,6 @@ const searchAccountAndChange = (database, name, cpf, data_nascimento, telefone, 
 
   return changedAccount;
 };
-const validateAccount = (database, number,) => {
-  let selectedAccount = [];
-
-  database.contas.find((account) => {
-    if (account.numero === number) {
-      selectedAccount = account;
-    }
-  });
-  
-  return selectedAccount;
-};
 const storeJsonData = async (database) => {
   try {
     const fsPromises = require("fs/promises");
@@ -45,7 +45,7 @@ const storeJsonData = async (database) => {
       "./src/database/database.json",
       JSON.stringify(database)
     );
-  } 
+  }
   catch (erro) {
     console.error(erro);
   }
@@ -64,6 +64,7 @@ module.exports = {
   validateUser,
   validateAccount,
   formatDate,
-  storeJsonData,
   searchAccountAndChange,
+  storeJsonData
+
 };
